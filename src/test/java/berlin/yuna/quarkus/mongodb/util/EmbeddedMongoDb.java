@@ -39,7 +39,7 @@ public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
     public Map<String, String> start() {
         final HashMap<String, String> map = new HashMap<>();
         final String host = "localhost";
-        final int port = findPort(host, 27017);
+        final int port = getNextFreePort(host, 27017);
         map.put("embedded.mongodb.host", host);
         map.put("embedded.mongodb.port", String.valueOf(port));
         map.put("quarkus.mongodb.write-concern.journal", "false");
@@ -54,7 +54,7 @@ public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
         return map;
     }
 
-    private int findPort(final String host, final int defaultPort) {
+    private int getNextFreePort(final String host, final int defaultPort) {
         if (isPortInUse(host, defaultPort)) {
             final Random random = new Random();
             for (int i = 0; i < 64; i++) {
