@@ -18,7 +18,7 @@
         <quarkus-universe-bom.version>1.9.0.Final</quarkus-universe-bom.version>
         <quarkus-maven-plugin.version>1.8.1.Final</quarkus-maven-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <embed.mongo.version>2.2.0</embed.mongo.version>
+        <embed.mongo.version>3.0.0</embed.mongo.version>
     </properties>
 
     <dependencies>
@@ -32,6 +32,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.0.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
