@@ -4,33 +4,33 @@ import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.DownloadConfigBuilder;
-import de.flapdoodle.embed.mongo.config.ExtractedArtifactStoreBuilder;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.Defaults;
+import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
 import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.config.IRuntimeConfig;
+import de.flapdoodle.embed.process.config.RuntimeConfig;
 import de.flapdoodle.embed.process.config.io.ProcessOutput;
 import de.flapdoodle.embed.process.io.Processors;
-import de.flapdoodle.embed.process.io.progress.LoggingProgressListener;
+import de.flapdoodle.embed.process.io.Slf4jLevel;
+import de.flapdoodle.embed.process.io.progress.Slf4jProgressListener;
 import de.flapdoodle.embed.process.runtime.Network;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static org.awaitility.Awaitility.await;
 
 
 public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
-    private static MongodExecutable mongoExe;
-    private static MongodProcess process;
+    private MongodExecutable mongoExe;
+    private MongodProcess process;
 
     private static final MongodStarter starter = MongodStarter.getInstance(prepareConfig());
     private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(EmbeddedMongoDb.class);
@@ -78,8 +78,8 @@ public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
         }
     }
 
-    public static void startUp(String hostName, int portNumber) throws Exception {
-        mongoExe = starter.prepare(new MongodConfigBuilder()
+    private void startUp(String hostName, int portNumber) throws Exception {
+        mongoExe = starter.prepare(MongodConfig.builder()
                 .version(Version.Main.PRODUCTION)
                 .net(new Net(hostName, portNumber, Network.localhostIsIPv6()))
                 .build());
@@ -89,7 +89,7 @@ public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
         LOG.info("Started embedded mongoDb");
     }
 
-    public static void tearDown() throws Exception {
+    private void tearDown() throws Exception {
         process.stop();
         mongoExe.stop();
         LOG.info("Stopped embedded mongoDb");
@@ -104,23 +104,20 @@ public class EmbeddedMongoDb implements QuarkusTestResourceLifecycleManager {
         }
     }
 
-    private static IRuntimeConfig prepareConfig() {
-        Level logLevel = Level.OFF;
-        Logger logger = Logger.getLogger(EmbeddedMongoDb.class.getName());
+    private static RuntimeConfig prepareConfig() {
+        Logger logger = LoggerFactory.getLogger(EmbeddedMongoDb.class);
         ProcessOutput processOutput = new ProcessOutput(
-                Processors.logTo(logger, logLevel),
-                Processors.logTo(logger, Level.SEVERE),
-                Processors.named("[console>]", Processors.logTo(logger, logLevel))
+                Processors.silent(),
+                Processors.logTo(logger, Slf4jLevel.ERROR),
+                Processors.silent()
         );
 
-        return new RuntimeConfigBuilder()
-                .defaultsWithLogger(Command.MongoD, logger)
+        return Defaults.runtimeConfigFor(Command.MongoD, logger)
                 .processOutput(processOutput)
-                .artifactStore(new ExtractedArtifactStoreBuilder()
-                        .defaults(Command.MongoD)
-                        .download(new DownloadConfigBuilder()
-                                .defaultsForCommand(Command.MongoD)
-                                .progressListener(new LoggingProgressListener(logger, logLevel))))
+                .artifactStore(Defaults.extractedArtifactStoreFor(Command.MongoD)
+                        .withDownloadConfig(Defaults.downloadConfigFor(Command.MongoD)
+                                .progressListener(new Slf4jProgressListener(logger, Slf4jLevel.ERROR))
+                                .build()))
                 .build();
     }
 }
